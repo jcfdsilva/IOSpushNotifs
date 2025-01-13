@@ -48,7 +48,7 @@
 
     <script>
         if ('serviceWorker' in navigator && 'PushManager' in window) {
-            navigator.serviceWorker.register('/sw.js')
+            navigator.serviceWorker.register('/ipeseai-push/sw.js')
                 .then((registration) => {
                     console.log('ServiceWorker registered:', registration);
                 })
@@ -96,41 +96,22 @@
             }
         });
 
-        document.getElementById('sendDelayedNotification').addEventListener('click', async () => {
-            const DELAY = 20; // seconds
-            let countdown = DELAY;
-            sendDelayedNotificationBtn.disabled = true;
-            
-            // Start countdown
-            countdownDiv.textContent = `Notification will be sent in ${countdown} seconds`;
-            
-            const timer = setInterval(() => {
-                countdown--;
-                countdownDiv.textContent = `Notification will be sent in ${countdown} seconds`;
-                
-                if (countdown <= 0) {
-                    clearInterval(timer);
-                    countdownDiv.textContent = '';
-                    sendDelayedNotificationBtn.disabled = false;
-                }
-            }, 1000);
+document.getElementById('sendDelayedNotification').addEventListener('click', async () => {
+    const DELAY = 20 * 1000; // Delay in milliseconds
+    const registration = await navigator.serviceWorker.ready;
 
-            // Schedule notification
-            setTimeout(async () => {
-                try {
-                    const registration = await navigator.serviceWorker.ready;
-                    await registration.showNotification('Delayed Notification', {
-                        body: 'This notification was scheduled 20 seconds ago at ' + new Date().toLocaleTimeString(),
-                        icon: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgdmlld0JveD0iMCAwIDY0IDY0Ij48Y2lyY2xlIGN4PSIzMiIgY3k9IjMyIiByPSIzMCIgZmlsbD0iIzAwN0FGRiIvPjwvc3ZnPg=='
-                    });
-                    updateStatus('Delayed notification sent!');
-                } catch (err) {
-                    updateStatus('Error sending delayed notification: ' + err.message, true);
-                }
-            }, DELAY * 1000);
+    registration.active.postMessage({
+        type: 'schedule-notification',
+        payload: {
+            title: 'Delayed Notification',
+            body: 'This notification was scheduled 20 seconds ago.',
+            icon: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgdmlld0JveD0iMCAwIDY0IDY0Ij48Y2lyY2xlIGN4PSIzMiIgY3k9IjMyIiByPSIzMCIgZmlsbD0iIzAwN0FGRiIvPjwvc3ZnPg==',
+            delay: DELAY,
+        },
+    });
 
-            updateStatus('Notification scheduled!');
-        });
+    updateStatus('Notification scheduled!');
+});
     </script>
 </body>
 </html>

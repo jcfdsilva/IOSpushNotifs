@@ -1,17 +1,42 @@
+// sw.js (Service Worker)
+
 self.addEventListener('install', (event) => {
+    console.log('Service Worker installed.');
     self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
-    event.waitUntil(clients.claim());
+    console.log('Service Worker activated.');
 });
 
-self.addEventListener('push', (event) => {
-    const options = {
-        body: 'This is a test notification sent at ' + new Date().toLocaleTimeString(),
-        icon: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgdmlld0JveD0iMCAwIDY0IDY0Ij48Y2lyY2xlIGN4PSIzMiIgY3k9IjMyIiByPSIzMCIgZmlsbD0iIzAwN0FGRiIvPjwvc3ZnPg==',
-    };
+self.addEventListener('notificationclick', (event) => {
+    event.notification.close();
     event.waitUntil(
-        self.registration.showNotification('Test Notification', options)
+        clients.openWindow('/') // Redirect to your application
     );
+});
+
+let notificationScheduled = false;
+
+async function scheduleNotification(data) {
+    const delay = data.delay || 0;
+
+    if (notificationScheduled) return; // Prevent scheduling if already done
+
+    notificationScheduled = true;
+
+    setTimeout(async () => {
+        await self.registration.showNotification(data.title, {
+            body: data.body,
+            icon: data.icon,
+        });
+        notificationScheduled = false; // Reset after the notification is shown
+    }, delay);
+}
+
+// Listen for messages from the main thread
+self.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'schedule-notification') {
+        scheduleNotification(event.data.payload);
+    }
 });

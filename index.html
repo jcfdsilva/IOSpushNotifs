@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Push Notification Demo</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 600px;
+            margin: 40px auto;
+            padding: 20px;
+            text-align: center;
+        }
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            background-color: #007AFF;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        #status {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        #countdown { font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>Push Notification Demo</h1>
+    <button id="requestPermission">Request Permission</button>
+    <button id="sendNotification" disabled>Send Test Notification</button>
+    <button id="sendDelayedNotification" disabled>Send Notification in 20s</button>
+    <div id="countdown"></div>
+    <div id="status"></div>
+
+    <script>
+        if ('serviceWorker' in navigator && 'PushManager' in window) {
+            navigator.serviceWorker.register('/sw.js')
+                .then((registration) => {
+                    console.log('ServiceWorker registered:', registration);
+                })
+                .catch((err) => {
+                    console.error('ServiceWorker registration failed:', err);
+                });
+        }
+
+        const statusDiv = document.getElementById('status');
+        const sendNotificationBtn = document.getElementById('sendNotification');
+        const sendDelayedNotificationBtn = document.getElementById('sendDelayedNotification');
+        const countdownDiv = document.getElementById('countdown');
+
+        function updateStatus(message, isError = false) {
+            statusDiv.textContent = message;
+            statusDiv.className = isError ? 'error' : 'success';
+        }
+
+        document.getElementById('requestPermission').addEventListener('click', async () => {
+            try {
+                const permission = await Notification.requestPermission();
+                if (permission === 'granted') {
+                    const registration = await navigator.serviceWorker.ready;
+                    updateStatus('Permission granted! You can now send notifications.');
+                    sendNotificationBtn.disabled = false;
+                    sendDelayedNotificationBtn.disabled = false;
+                } else {
+                    updateStatus('Permission denied. Please enable notifications in your browser settings.', true);
+                }
+            } catch (err) {
+                updateStatus('Error requesting permission: ' + err.message, true);
+            }
+        });
+
+        document.getElementById('sendNotification').addEventListener('click', async () => {
+            try {
+                const registration = await navigator.serviceWorker.ready;
+                await registration.showNotification('Test Notification', {
+                    body: 'This is a test notification sent at ' + new Date().toLocaleTimeString(),
+                    icon: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgdmlld0JveD0iMCAwIDY0IDY0Ij48Y2lyY2xlIGN4PSIzMiIgY3k9IjMyIiByPSIzMCIgZmlsbD0iIzAwN0FGRiIvPjwvc3ZnPg=='
+                });
+                updateStatus('Notification sent!');
+            } catch (err) {
+                updateStatus('Error sending notification: ' + err.message, true);
+            }
+        });
+
+        document.getElementById('sendDelayedNotification').addEventListener('click', async () => {
+            const DELAY = 20; // seconds
+            let countdown = DELAY;
+            sendDelayedNotificationBtn.disabled = true;
+            
+            // Start countdown
+            countdownDiv.textContent = `Notification will be sent in ${countdown} seconds`;
+            
+            const timer = setInterval(() => {
+                countdown--;
+                countdownDiv.textContent = `Notification will be sent in ${countdown} seconds`;
+                
+                if (countdown <= 0) {
+                    clearInterval(timer);
+                    countdownDiv.textContent = '';
+                    sendDelayedNotificationBtn.disabled = false;
+                }
+            }, 1000);
+
+            // Schedule notification
+            setTimeout(async () => {
+                try {
+                    const registration = await navigator.serviceWorker.ready;
+                    await registration.showNotification('Delayed Notification', {
+                        body: 'This notification was scheduled 20 seconds ago at ' + new Date().toLocaleTimeString(),
+                        icon: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgdmlld0JveD0iMCAwIDY0IDY0Ij48Y2lyY2xlIGN4PSIzMiIgY3k9IjMyIiByPSIzMCIgZmlsbD0iIzAwN0FGRiIvPjwvc3ZnPg=='
+                    });
+                    updateStatus('Delayed notification sent!');
+                } catch (err) {
+                    updateStatus('Error sending delayed notification: ' + err.message, true);
+                }
+            }, DELAY * 1000);
+
+            updateStatus('Notification scheduled!');
+        });
+    </script>
+</body>
+</html>
